@@ -14,6 +14,7 @@ def reconstruct_video(data_folder, tiff_path):
     is_cell = np.load(is_cell_path)
     cells2keep = is_cell[:, 0].astype(bool)
     F = F[cells2keep, :]
+    F = gaussian_filter1d(F, sigma=7.55, axis=1)  # Smooth the traces
     stat = stat[cells2keep]
 
     # Load the tiff file    

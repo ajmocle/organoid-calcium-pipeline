@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
 from scipy.signal import welch
-from os.path import join
-import yaml 
+from os.path import join, exists
 from tqdm import tqdm
+from glob import glob
+import tifffile
 
 # Loading
 
@@ -22,6 +23,8 @@ def load_data(data_folder, metadata_path):
             samples[sample_name]["metadata"][col] = sample_metadata[col]
 
         suite2p_path = join(folder, "plane0/")
+        if not exists(suite2p_path):
+            suite2p_path = join(folder, "suite2p/plane0/")
         F = np.load(join(suite2p_path, "F.npy"))
         stat = np.load(join(suite2p_path, "stat.npy"), allow_pickle=True)
         is_cell = np.load(join(suite2p_path, "iscell.npy"))
@@ -32,6 +35,33 @@ def load_data(data_folder, metadata_path):
 
         samples[sample_name]["F"] = F 
         samples[sample_name]["stat"] = stat
+
+        # Check for mask file
+
+        mask_path = glob(join(folder, "*mask.tiff"))
+
+        if len(mask_path) > 0:
+            mask_path = mask_path[0]
+            if exists(mask_path):
+                mask = tifffile.imread(mask_path)
+                samples[sample_name]["mask"] = mask
+
+                mask_thresh = mask > 0
+                in_organoid = np.zeros(len(stat), dtype=bool)
+                for nn in range(len(stat)):
+                    coords = stat[nn]["med"]
+                    if mask_thresh[coords[0], coords[1]] == 1:
+                        in_organoid[nn] = 1
+
+                samples[sample_name]["in_mask"] = in_organoid
+
+            else:
+                samples[sample_name]["mask"] = None
+        else:
+            samples[sample_name]["mask"] = None
+
+
+        
 
     return samples
 
@@ -63,4 +93,4 @@ def normalized_correlation(traces, n_shuff=100):
         corr_shuf[:, :, ss] = np.corrcoef(traces_shuff)
     
     corr_norm = (actual - np.mean(corr_shuf, axis=2))/np.std(corr_shuf, axis=2)
-    return np.nan_to_num(corr_norm)
+    return (corr_norm)

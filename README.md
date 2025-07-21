@@ -15,3 +15,7 @@ Optional step if your data is in a single .lif file.
 ```
 python extract_tiffs_from_lif.py /path/to/lif/file --output /path/to/output/folder
 ```
+
+### Preprocessing tiffs
+
+Applies a gaussian blur denoising and chops up video if there are dark frames that mark the addition of a chemical stimulus
